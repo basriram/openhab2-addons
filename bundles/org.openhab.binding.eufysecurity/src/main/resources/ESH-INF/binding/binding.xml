@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<binding:binding id="eufysecurity" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:binding="https://openhab.org/schemas/binding/v1.0.0"
+	xsi:schemaLocation="https://openhab.org/schemas/binding/v1.0.0 https://openhab.org/schemas/binding-1.0.0.xsd">
+
+	<name>EufySecurity Binding</name>
+	<description>This is the binding for EufySecurity devices such as doorbells.</description>
+	<author>Sriram Balakrishnan</author>
+
+</binding:binding>

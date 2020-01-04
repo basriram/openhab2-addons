@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config-description:config-descriptions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:config-description="https://openhab.org/schemas/config-description/v1.0.0"
+	xsi:schemaLocation="https://openhab.org/schemas/config-description/v1.0.0 https://openhab.org/schemas/config-description-1.0.0.xsd">
+
+	<config-description uri="thing-type:eufysecurity:config">
+			<parameter name="DeviceSN" type="text" readOnly="false">
+				<label>Device SN</label>
+				<description>The internal Device SN</description>
+				<required>true</required>
+			</parameter>				
+		<parameter name="imageRefreshRate" type="integer" min="2" max="600">
+			<label>Image Refresh Rate</label>
+			<description>Image refresh rate in seconds (blank to disable)</description>
+		</parameter>
+		<parameter name="doorbellOffDelay" type="integer" min="1">
+			<label>Doorbell Off Delay</label>
+			<description>Delay to set doorbell channel OFF after doorbell event (blank to disable)</description>
+		</parameter>
+		<parameter name="motionOffDelay" type="integer" min="1">
+			<label>Motion Off Delay</label>
+			<description>Delay to set motion channel OFF after motion event (blank to disable)</description>
+		</parameter>
+	</config-description>
+
+</config-description:config-descriptions>
