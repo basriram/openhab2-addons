@@ -1,14 +1,16 @@
 /**
- * Copyright (c) 2010-2019 Contributors to the openHAB project
- *
- * See the NOTICE file(s) distributed with this work for additional
- * information.
- *
- * This program and the accompanying materials are made available under the
- * terms of the Eclipse Public License 2.0 which is available at
- * http://www.eclipse.org/legal/epl-2.0
- *
- * SPDX-License-Identifier: EPL-2.0
+ * /**
+ *  * Copyright (c) 2010-2019 Contributors to the openHAB project
+ *  *
+ *  * See the NOTICE file(s) distributed with this work for additional
+ *  * information.
+ *  *
+ *  * This program and the accompanying materials are made available under the
+ *  * terms of the Eclipse Public License 2.0 which is available at
+ *  * http://www.eclipse.org/legal/epl-2.0
+ *  *
+ *  * SPDX-License-Identifier: EPL-2.0
+ *  */
  */
 package org.openhab.binding.eufysecurity.discovery;
 
@@ -23,6 +25,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.smarthome.config.discovery.AbstractDiscoveryService;
 import org.eclipse.smarthome.config.discovery.DiscoveryResult;
 import org.eclipse.smarthome.config.discovery.DiscoveryResultBuilder;
@@ -50,7 +53,7 @@ public class EufySecurityDeviceDiscovery extends AbstractDiscoveryService {
 
     private final EufySecurityBridgeHandler bridge;
 
-    private ScheduledFuture<?> scanningJob;
+    private @Nullable ScheduledFuture<?> scanningJob;
 
     public EufySecurityDeviceDiscovery(final EufySecurityBridgeHandler bridge) throws IllegalArgumentException {
         super(SEARCH_TIME);

@@ -1,14 +1,16 @@
 /**
- * Copyright (c) 2010-2019 Contributors to the openHAB project
- *
- * See the NOTICE file(s) distributed with this work for additional
- * information.
- *
- * This program and the accompanying materials are made available under the
- * terms of the Eclipse Public License 2.0 which is available at
- * http://www.eclipse.org/legal/epl-2.0
- *
- * SPDX-License-Identifier: EPL-2.0
+ * /**
+ *  * Copyright (c) 2010-2019 Contributors to the openHAB project
+ *  *
+ *  * See the NOTICE file(s) distributed with this work for additional
+ *  * information.
+ *  *
+ *  * This program and the accompanying materials are made available under the
+ *  * terms of the Eclipse Public License 2.0 which is available at
+ *  * http://www.eclipse.org/legal/epl-2.0
+ *  *
+ *  * SPDX-License-Identifier: EPL-2.0
+ *  */
  */
 package org.openhab.binding.eufysecurity.internal.api.model;
 
@@ -20,11 +22,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.openhab.binding.eufysecurity.internal.api.NotAuthorizedException;
 import org.openhab.binding.eufysecurity.internal.api.model.generated.DeviceSettingMessage;
 import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.smarthome.core.common.ThreadPoolManager;
 import org.openhab.binding.eufysecurity.internal.ImageReadyListener;
@@ -43,13 +47,13 @@ public class EufySecuritySystem {
     private final Logger logger = LoggerFactory.getLogger(EufySecuritySystem.class);
 
     private final EufySecurityWebClient client;
-    private AccountInfo accountInfo = null;
-    private String userId = null;
+    @Nullable private AccountInfo accountInfo;
+    @Nullable private String userId;
     private final Map<String, Device> deviceMapNew = new HashMap<>();
     private final Map<String, Station> stationMapNew = new HashMap<>();
     private final ScheduledExecutorService imageDownloadScheduler = ThreadPoolManager
             .getScheduledPool("eufysecurityimagethread");
-    private java.util.concurrent.ScheduledFuture<?> imageDownloadJob;
+    private @Nullable ScheduledFuture<?> imageDownloadJob;
     private boolean connected = false;
     private String region = "US";
 
@@ -229,7 +233,7 @@ public class EufySecuritySystem {
         return connected;
     }
 
-    public String getUserId() {
+    public @Nullable String getUserId() {
         return this.userId;
     }
 
@@ -237,7 +241,7 @@ public class EufySecuritySystem {
         this.region = region;
     }
 
-    public String getRegion() {
+    public @Nullable String getRegion() {
         return region;
     }
 }
