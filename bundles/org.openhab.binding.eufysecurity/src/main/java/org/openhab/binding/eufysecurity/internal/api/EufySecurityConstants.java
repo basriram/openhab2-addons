@@ -10,7 +10,7 @@
  *  * http://www.eclipse.org/legal/epl-2.0
  *  *
  *  * SPDX-License-Identifier: EPL-2.0
- *  */
+ *  *
  */
 package org.openhab.binding.eufysecurity.internal.api;
 
@@ -27,7 +27,6 @@ public class EufySecurityConstants {
 
     // URL for REST service end point
     public static final String PRIMARY_URL = "https://mysecurity.eufylife.com/api/v1";
-
 
     // MQTT is used by Doorbell to receive notification for things such as motion detected/doorbell rang etc.,
     public static final String MQTT_CI_PASSWORD = "roav#2018";
@@ -50,6 +49,10 @@ public class EufySecurityConstants {
     public static String deviceTopic = "/phone/doorbell/%s/push_message";
 
     // Seconds to wait before tryingt download image after event has occured
-    public static final Integer IMAGE_DOWNLOAD_DELAY = 10; 
+    public static final Integer IMAGE_DOWNLOAD_DELAY = 10;
 
+    // List of P2P STUN servers
+    // public static String[] STUN_SERVERS = { "54.153.101.7", "18.223.127.200", "34.235.4.153" };
+    public static String[] STUN_SERVERS = {  "54.153.101.7" };
+    public static int STUN_PORT = 32100;
 }

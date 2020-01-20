@@ -10,19 +10,24 @@
  *  * http://www.eclipse.org/legal/epl-2.0
  *  *
  *  * SPDX-License-Identifier: EPL-2.0
- *  */
- */
+ *  *
+  */
 package org.openhab.binding.eufysecurity.handler;
 
 import static org.openhab.binding.eufysecurity.EufySecurityBindingConstants.*;
 import com.google.protobuf.InvalidProtocolBufferException;
+
+import java.net.InetAddress;
 import java.security.cert.CertificateException;
 import java.time.Instant;
-
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.smarthome.core.common.ThreadPoolManager;
@@ -30,6 +35,7 @@ import org.eclipse.smarthome.core.i18n.TimeZoneProvider;
 import org.eclipse.smarthome.core.library.types.DateTimeType;
 import org.eclipse.smarthome.core.library.types.OnOffType;
 import org.eclipse.smarthome.core.library.types.RawType;
+import org.eclipse.smarthome.core.library.types.StringType;
 import org.eclipse.smarthome.core.net.NetworkAddressService;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
@@ -45,8 +51,12 @@ import org.eclipse.smarthome.io.transport.mqtt.MqttMessageSubscriber;
 import org.openhab.binding.eufysecurity.config.EufySecurityConfiguration;
 import org.openhab.binding.eufysecurity.internal.ImageReadyListener;
 import org.openhab.binding.eufysecurity.internal.api.EufySecurityMqttClient;
+import org.openhab.binding.eufysecurity.internal.api.EufySecurityP2PClient;
+import org.openhab.binding.eufysecurity.internal.api.EufySecurityP2PClient.ISessionState;
+import org.openhab.binding.eufysecurity.internal.api.EufySecurityP2PClient.SessionState;
 import org.openhab.binding.eufysecurity.internal.api.model.CameraEvent;
 import org.openhab.binding.eufysecurity.internal.api.model.EufySecuritySystem;
+import org.openhab.binding.eufysecurity.internal.api.model.Station;
 import org.openhab.binding.eufysecurity.internal.api.model.generated.DeviceSettingMessage;
 import org.eclipse.smarthome.core.thing.CommonTriggerEvents;
 
@@ -61,12 +71,13 @@ import org.slf4j.LoggerFactory;
  */
 @NonNullByDefault
 public class EufySecurityDoorbellHandler extends EufySecurityDeviceHandler
-        implements MqttMessageSubscriber, MqttConnectionObserver, ImageReadyListener {
+        implements MqttMessageSubscriber, MqttConnectionObserver, ImageReadyListener, ISessionState {
     private final Logger logger = LoggerFactory.getLogger(EufySecurityDoorbellHandler.class);
 
     private final String deviceSN;
     private @Nullable EufySecurityMqttClient mqttClient;
     private String clientId;
+    private List<EufySecurityP2PClient> p2pClients;
     private @NonNullByDefault({}) EufySecurityConfiguration config;
 
     private final TimeZoneProvider timeZoneProvider;
@@ -86,8 +97,8 @@ public class EufySecurityDoorbellHandler extends EufySecurityDeviceHandler
         this.timeZoneProvider = timeZoneProvider;
         this.config = getConfigAs(EufySecurityConfiguration.class);
         deviceSN = thing.getConfiguration().get(DEVICE_SN).toString();
-        clientId = EufySecurityMqttClient.getClientId(eufySecuritySystem.getUserId(),
-                networkAddressService.getPrimaryIpv4HostAddress().toString());
+        clientId = EufySecurityMqttClient.getClientId((@NonNull String)eufySecuritySystem.getUserId(),
+                (@NonNull String)networkAddressService.getPrimaryIpv4HostAddress().toString());
         logger.debug("Client ID is {}", clientId);
     }
 
@@ -96,7 +107,7 @@ public class EufySecurityDoorbellHandler extends EufySecurityDeviceHandler
         // Because initialization can take longer a scheduler with an extra thread is
         // created
         scheduler.schedule(() -> {
-            if (createMqttConnection()) {
+            if (createMqttConnection() && crateP2PConnection()) {
                 updateStatus(ThingStatus.ONLINE);
             } else {
                 updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR,
@@ -112,11 +123,33 @@ public class EufySecurityDoorbellHandler extends EufySecurityDeviceHandler
         stopMotionOffJob();
     }
 
+    private boolean crateP2PConnection() {
+        boolean success = false;
+        try {
+            int i = 0;
+            p2pClients = new ArrayList<EufySecurityP2PClient>();
+
+            Map<String, Station> staionsList = eufySecuritySystem.getAllStations();
+            for (Station station : staionsList.values()) {
+                EufySecurityP2PClient myClient = new EufySecurityP2PClient(station, this);
+                p2pClients.add(myClient);
+                myClient.start();
+                i = i + 1;
+            }
+            success = true;
+        } catch (Exception ce) {
+            ce.printStackTrace();
+            logger.error("error creating p2p connection", ce.getMessage());
+            success = false;
+        }
+        return success;
+    }
+
     private boolean createMqttConnection() {
         boolean success = false;
         try {
             mqttClient = new EufySecurityMqttClient(clientId, this, this);
-            mqttClient.startProfileConnection(eufySecuritySystem.getRegion(), this.deviceSN);
+            mqttClient.startProfileConnection((@NonNull String)eufySecuritySystem.getRegion(), (@NonNull String) this.deviceSN);
             success = true;
         } catch (CertificateException ce) {
             logger.error("Ceriticate error cerating mqtt connection {}", ce.getMessage());
@@ -130,26 +163,26 @@ public class EufySecurityDoorbellHandler extends EufySecurityDeviceHandler
     // Callback used by listener to update doorbell channel
     public void updateDoorbellChannel(CameraEvent doorbellEvent) {
         logger.debug("Handler: Update DOORBELL channels for thing {}", getThing().getUID());
-        if (doorbellEvent.isRawImageAvailable()) {
-            RawType image = new RawType(doorbellEvent.getRawImage(),
-                     doorbellEvent.getImageContentType());
+        if (doorbellEvent.isRawImageAvailable() && doorbellEvent.getImageContentType()!=null) {
+            RawType image = new RawType((byte @NonNull[])doorbellEvent.getRawImage(), (@NonNull String) doorbellEvent.getImageContentType());
             updateState(CHANNEL_DOORBELL_IMAGE, image != null ? image : UnDefType.UNDEF);
         }
         updateState(CHANNEL_DOORBELL_TIMESTAMP, getLocalDateTimeType(doorbellEvent.getCreatedTime()));
         triggerChannel(CHANNEL_DOORBELL, CommonTriggerEvents.PRESSED);
+        updateState(CHANNEL_IMAGE_URL, new StringType(doorbellEvent.getPicUrls().get(0)));
         startDoorbellOffJob();
     }
 
     // Callback used by listener to update motion channel
     public void updateMotionChannel(CameraEvent motionEvent) {
         logger.debug("Handler: Update MOTION channels for thing {}", getThing().getUID());
-        if (motionEvent.isRawImageAvailable()) {
-            RawType image = new RawType( motionEvent.getRawImage(),
-                     motionEvent.getImageContentType());
+        if (motionEvent.isRawImageAvailable() && motionEvent.getImageContentType()!=null) {
+            RawType image = new RawType((byte @NonNull[])motionEvent.getRawImage(), (@NonNull String) motionEvent.getImageContentType());
             updateState(CHANNEL_MOTION_IMAGE, image != null ? image : UnDefType.UNDEF);
         }
         updateState(CHANNEL_MOTION_TIMESTAMP, getLocalDateTimeType(motionEvent.getCreatedTime()));
         updateState(CHANNEL_MOTION, OnOffType.ON);
+        updateState(CHANNEL_IMAGE_URL, new StringType(motionEvent.getPicUrls().get(0)));
         startMotionOffJob();
     }
 
@@ -285,13 +318,18 @@ public class EufySecurityDoorbellHandler extends EufySecurityDeviceHandler
 
     @Override
     public void imageReady(CameraEvent event) {
-        if (event.isRawImageAvailable()) {
-            RawType image = new RawType( event.getRawImage(),
-                     event.getImageContentType());
+        if (event.isRawImageAvailable() && event.getRawImage()!=null && event.getImageContentType()!=null){
+            RawType image = new RawType((byte @NonNull[]) event.getRawImage(), (@NonNull String)event.getImageContentType());
             if (event.isDoorbellEvent())
                 updateState(CHANNEL_DOORBELL_IMAGE, image != null ? image : UnDefType.UNDEF);
             else
                 updateState(CHANNEL_MOTION_IMAGE, image != null ? image : UnDefType.UNDEF);
         }
+    }
+
+    @Override
+    public void sessionStateChanged(SessionState state, @Nullable InetAddress address) {
+        // TODO Auto-generated method stub
+        logger.warn("Session state cahnged");
     }
 }

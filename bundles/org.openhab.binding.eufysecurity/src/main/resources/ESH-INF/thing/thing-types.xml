@@ -23,6 +23,7 @@
 			<channel id="motionHistoryTimestamp" typeId="motionHistoryTimestamp" />
 			<channel id="motionHistoryImage" typeId="motionHistoryImage" />
 			<channel id="image" typeId="image" />
+			<channel id="imageURL" typeId="imageURL" />
 			<channel id="imageTimestamp" typeId="imageTimestamp" />
 		</channels>
 		<config-description-ref uri="thing-type:eufysecurity:config" />
@@ -63,6 +64,11 @@
 		<label>Image</label>
 		<description>Image from device</description>
 	</channel-type>
+	<channel-type id="imageURL">
+		<item-type>String</item-type>
+		<label>Image URL</label>
+		<description>Image URL from device</description>
+	</channel-type>	
 	<channel-type id="doorbellHistoryIndex">
 		<item-type>Number</item-type>
 		<label>Doorbell History Index</label>

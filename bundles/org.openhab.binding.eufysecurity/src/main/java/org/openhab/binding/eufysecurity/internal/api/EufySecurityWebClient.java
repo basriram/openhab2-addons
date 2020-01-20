@@ -10,7 +10,7 @@
  *  * http://www.eclipse.org/legal/epl-2.0
  *  *
  *  * SPDX-License-Identifier: EPL-2.0
- *  */
+ *  *
  */
 package org.openhab.binding.eufysecurity.internal.api;
 
@@ -137,7 +137,7 @@ public class EufySecurityWebClient {
     public Station[] getStations(String token) throws IOException, NotAuthorizedException {
         try {
             String stationReq = gson.toJson(new StationListRequest(getTransactionId())).toString();
-            Request stationListRequest = httpClient.newRequest(EufySecurityConstants.PRIMARY_URL + "/app/get_hubs_list")
+            Request stationListRequest = httpClient.newRequest(EufySecurityConstants.PRIMARY_URL + "/app/get_hub_list")
                     .method(HttpMethod.POST).content(new StringContentProvider(stationReq), "application/json");
             StationListResponse response = postRequest(stationListRequest, token, StationListResponse.class);
 

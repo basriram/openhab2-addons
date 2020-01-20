@@ -10,8 +10,8 @@
  *  * http://www.eclipse.org/legal/epl-2.0
  *  *
  *  * SPDX-License-Identifier: EPL-2.0
- *  */
- */
+ *  *
+  */
 package org.openhab.binding.eufysecurity.handler;
 
 import java.util.List;

@@ -10,7 +10,7 @@
  *  * http://www.eclipse.org/legal/epl-2.0
  *  *
  *  * SPDX-License-Identifier: EPL-2.0
- *  */
+ *  *
  */
 package org.openhab.binding.eufysecurity;
 
@@ -49,6 +49,7 @@ public class EufySecurityBindingConstants {
     public static final String CHANNEL_MOTION_TIMESTAMP = "motionTimestamp";
     public static final String CHANNEL_MOTION_IMAGE = "motionImage";
     public static final String CHANNEL_IMAGE = "image";
+    public static final String CHANNEL_IMAGE_URL = "imageURL";
     public static final String CHANNEL_IMAGE_TIMESTAMP = "imageTimestamp";
     public static final String CHANNEL_DOORBELL_HISTORY_INDEX = "doorbellHistoryIndex";
     public static final String CHANNEL_DOORBELL_HISTORY_IMAGE = "doorbellHistoryImage";
