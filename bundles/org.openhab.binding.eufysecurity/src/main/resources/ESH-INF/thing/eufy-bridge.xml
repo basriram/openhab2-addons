@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thing:thing-descriptions bindingId="eufysecurity"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:thing="https://openhab.org/schemas/thing-description/v1.0.0"
+	xsi:schemaLocation="https://openhab.org/schemas/thing-description/v1.0.0 https://openhab.org/schemas/thing-description-1.0.0.xsd">
+	<!-- Thing Type -->
+	<bridge-type id="bridge">
+		<label>Eufy Security Bridge</label>
+		<description>The Eufy Security Bridge</description>
+		<representation-property>Role</representation-property>
+		<config-description>
+			<parameter name="emailAddress" type="text">
+				<label>emailAddress</label>
+				<description>emailAddress for login to the eufy account.</description>
+				<required>true</required>
+			</parameter>
+			<parameter name="userPassword" type="text">
+				<context>password</context>
+				<label>Password</label>
+				<description>Password for login to the Eufy account</description>
+				<required>true</required>
+			</parameter>
+			<parameter name="region" type="text">
+				<context>Region</context>
+				<label>Region (US or EU)</label>
+				<description>Region where the device is registered</description>
+				<required>true</required>
+			</parameter>			
+		</config-description>
+	</bridge-type>  
+</thing:thing-descriptions>
