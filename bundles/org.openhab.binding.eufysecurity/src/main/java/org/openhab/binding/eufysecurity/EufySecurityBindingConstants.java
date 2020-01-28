@@ -57,6 +57,7 @@ public class EufySecurityBindingConstants {
     public static final String CHANNEL_MOTION_HISTORY_INDEX = "motionHistoryIndex";
     public static final String CHANNEL_MOTION_HISTORY_IMAGE = "motionHistoryImage";
     public static final String CHANNEL_MOTION_HISTORY_TIMESTAMP = "motionHistoryTimestamp";
+    public static final String CHANNEL_CHIME_MODE = "chime";
 
     public static final String DEVICE_NAME = "Name";
     public static final String DEVICE_SN = "DeviceSN";

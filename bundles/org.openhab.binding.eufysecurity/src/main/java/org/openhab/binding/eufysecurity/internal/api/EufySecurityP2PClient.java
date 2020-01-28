@@ -30,9 +30,11 @@ import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
-
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import com.fasterxml.jackson.core.util.ByteArrayBuilder;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.eufysecurity.internal.api.model.Station;
@@ -77,6 +79,7 @@ public class EufySecurityP2PClient implements Runnable, Closeable {
     public final byte clientSID1 = (byte) 0xab;
     public final byte clientSID2 = (byte) 0xde;
 
+
     /**
      * The session handshake is a 3 way handshake.
      */
@@ -117,7 +120,7 @@ public class EufySecurityP2PClient implements Runnable, Closeable {
          * @param state   The new state
          * @param address The remote IP address. Only guaranteed to be non null in the SESSION_VALID* states.
          */
-        void sessionStateChanged(SessionState state, @Nullable InetAddress address);
+        void sessionStateChanged(SessionState state, @Nullable InetAddress address, int port);
     }
 
     private final ISessionState observer;
@@ -154,9 +157,9 @@ public class EufySecurityP2PClient implements Runnable, Closeable {
     private final int port;
 
     /** The maximum duration for a session registration / keep alive process in milliseconds. */
-    public static final int TIMEOUT_MS = 11000;
+    public static final int TIMEOUT_MS = 31000;
     /** A packet is handled as lost / not confirmed after this time */
-    public static final int MAX_PACKET_IN_FLIGHT_MS = 2000;
+    public static final int MAX_PACKET_IN_FLIGHT_MS = 20000;
     /** The keep alive interval. Must be between 100 and REG_TIMEOUT_MS milliseconds or 0 */
     private final int keepAliveInterval;
 
@@ -182,7 +185,7 @@ public class EufySecurityP2PClient implements Runnable, Closeable {
        this.destIP = null;
         this.lastKnownIP = null;
        this.port = 0;
-        this.keepAliveInterval = 10000;
+        this.keepAliveInterval = 30000;
         this.cameraDID = new byte[] { 0x0 };
         if (!parseDID(station)) {
             throw new IllegalArgumentException("Station does not contain valid P2P_DID");
@@ -200,8 +203,10 @@ public class EufySecurityP2PClient implements Runnable, Closeable {
             return f;
         }
         if (sessionThread.isAlive()) {
+            logger.debug("Inside session thread is alive");
             DatagramSocket s = datagramSocket;
             assert s != null;
+            logger.debug("Invoking completeableFeaute with socket");
             return CompletableFuture.completedFuture(s);
         }
 
@@ -484,6 +489,8 @@ public class EufySecurityP2PClient implements Runnable, Closeable {
             sessionState = SessionState.SESSION_INVALID;
         }
 
+        final @NonNull InetAddress myaddr = (@NonNull InetAddress) lastKnownIP;
+        final @NonNull InetAddress stunaddr = (@NonNull InetAddress) lastKnownStunIP;
 
         switch (sessionState) {
             case SESSION_INVALID:
@@ -504,30 +511,30 @@ public class EufySecurityP2PClient implements Runnable, Closeable {
                     sessionState = SessionState.SESSION_NEED_REGISTER;
                 } else {
                     datagramSocket.setSoTimeout(300);
-                    sendUIDLookupRequest(datagramSocket, lastKnownStunIP);
+                    sendUIDLookupRequest(datagramSocket, stunaddr);
                     break;
                 }
             case SESSION_NEED_REGISTER:
                 if (input == StateMachineInput.SESSION_ESTABLISHED) {
                     sessionState = SessionState.SESSION_VALID;
                     lastSessionConfirmed = Instant.now();
-                     logger.debug("Registration complete");
-                     sendKeepAlive(datagramSocket, lastKnownIP, lastKnownPort);
+                    logger.debug("Registration complete");
+                     sendKeepAlive(datagramSocket, myaddr, lastKnownPort);
     
                 } else {
                     datagramSocket.setSoTimeout(300);
-                    sendProbeRequest(datagramSocket, lastKnownIP, lastKnownPort);
+                    sendProbeRequest(datagramSocket, myaddr, lastKnownPort);
                     break;
                 }
             case SESSION_VALID_KEEP_ALIVE:
             case SESSION_VALID:
                 if (input == StateMachineInput.KEEP_ALIVE_RECEIVED) {
                     lastSessionConfirmed = Instant.now();
-                    observer.sessionStateChanged(SessionState.SESSION_VALID_KEEP_ALIVE, lastKnownIP);
+                    observer.sessionStateChanged(SessionState.SESSION_VALID_KEEP_ALIVE, myaddr, lastKnownPort);
                 } else {
                     final InetAddress address = lastKnownIP;
                     if (keepAliveInterval > 0 && timeElapsed.toMillis() > keepAliveInterval && address != null) {
-                        sendKeepAlive(datagramSocket, lastKnownIP, lastKnownPort);
+                        sendKeepAlive(datagramSocket, myaddr, lastKnownPort);
                     }
                     // Increase socket timeout to wake up for the next keep alive interval
                     datagramSocket.setSoTimeout(keepAliveInterval);
@@ -536,7 +543,7 @@ public class EufySecurityP2PClient implements Runnable, Closeable {
         }
         logStateMachine(input);
         if (lastSessionState != sessionState) {
-            observer.sessionStateChanged(sessionState, lastKnownIP);
+            observer.sessionStateChanged(sessionState, myaddr, lastKnownPort);
         }
     }
 
@@ -593,13 +600,10 @@ public class EufySecurityP2PClient implements Runnable, Closeable {
                 }
 
                 int expectedLen = buffer[3] + 4;
-                logger.debug("Expected length {}", expectedLen);
                 if (expectedLen > len) {
                     logUnknownPacket(buffer, len, "Unexpected size!");
                     continue;
-                } else {
-                    logUnknownPacket(buffer, len, "received valid response");
-                }
+                } 
                 byte[] ipaddr = new byte[4];
                 DatagramPacket echo1Packet;
                 switch (buffer[1]) {
@@ -650,15 +654,12 @@ public class EufySecurityP2PClient implements Runnable, Closeable {
                         sessionStateMachine(datagramSocket, StateMachineInput.SESSION_ESTABLISHED);
                         break;                                           
                     case (byte) 0xe0: // Device keep alive
- 
-                        logUnknownPacket(buffer, len, "device keep alive e0");
-                        echo1Packet = new DatagramPacket(rPacket.getData(), rPacket.getLength(), lastKnownIP,
+                         echo1Packet = new DatagramPacket(rPacket.getData(), rPacket.getLength(), lastKnownIP,
                                 lastKnownPort);
                         datagramSocket.send(echo1Packet); // echo back                       
                         sessionStateMachine(datagramSocket, StateMachineInput.KEEP_ALIVE_RECEIVED);
                         break;
                     case (byte) 0xe1: // device keep alive request
-                        logUnknownPacket(buffer, len, "device keep alive e1");
                          echo1Packet = new DatagramPacket(rPacket.getData(), rPacket.getLength(), lastKnownIP,
                                 lastKnownPort);
                         datagramSocket.send(echo1Packet); // echo back
@@ -704,7 +705,8 @@ public class EufySecurityP2PClient implements Runnable, Closeable {
                 logger.debug("Current State NEED REGISTER");                break;
 
             case SESSION_VALID:
-                logger.debug("Current State session valid");                break;
+                break;
+             //   logger.debug("Current State session valid");                break;
 
             case SESSION_VALID_KEEP_ALIVE:
                 logger.debug("current state keep alive");                break;
@@ -720,7 +722,9 @@ public class EufySecurityP2PClient implements Runnable, Closeable {
 
             case INVALID_COMMAND: logger.debug("<< INVALID_COMMAND");                break;
 
-            case KEEP_ALIVE_RECEIVED: logger.debug("<< KEEP ALIVE RECEIVED");                break;
+            case KEEP_ALIVE_RECEIVED:
+                break;
+    //            logger.debug("<< KEEP ALIVE RECEIVED");                break;
 
             case BRIDGE_CONFIRMED:logger.debug("<< BRIDGE CONFIRMED");                break;
 

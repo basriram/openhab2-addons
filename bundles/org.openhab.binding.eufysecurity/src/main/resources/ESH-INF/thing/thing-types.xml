@@ -25,10 +25,20 @@
 			<channel id="image" typeId="image" />
 			<channel id="imageURL" typeId="imageURL" />
 			<channel id="imageTimestamp" typeId="imageTimestamp" />
+			<channel id="chime" typeId="chime"/>
 		</channels>
 		<config-description-ref uri="thing-type:eufysecurity:config" />
 	</thing-type>
-
+	<channel-type id="chime">
+		<item-type>Switch</item-type>
+		<label>Indoor Chime</label>
+		<description>Switch indoor Chime On</description>
+		<state>
+			<options>
+				<option value="ON">ChimeON</option>
+			</options>
+		</state>
+	</channel-type>
 	<channel-type id="doorbellTimestamp">
 		<item-type>DateTime</item-type>
 		<label>Doorbell Timestamp</label>

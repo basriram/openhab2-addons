@@ -161,7 +161,8 @@ public class EufySecuritySystem {
             final String picurl = event.getPicUrls().get(0); // Get the first image only for now
             try {
                 final ContentResponse response = client.downloadImage(picurl);
-                event.setImage(response.getContent(), response.getMediaType());
+                //event.setImage(response.getContent(), response.getMediaType());
+                event.setImage(response.getContent(), "image/jpeg"); // hardcoding mime type
                 listener.imageReady(event);
             } catch (final FileNotFoundException fe) {
                 logger.warn("Picture not ready yet..need to wait longer");
@@ -212,7 +213,7 @@ public class EufySecuritySystem {
                 imageDownloadJob = imageDownloadScheduler.schedule(() -> {
                     logger.debug("invoking thread to download picurls for event ");
                     scheduleImageDownloadJob(picEvent, imageReadyListener);
-                }, IMAGE_DOWNLOAD_DELAY, TimeUnit.SECONDS);
+                }, IMAGE_DOWNLOAD_DELAY, TimeUnit.SECONDS); 
             }
 
         } catch (final Exception e) {
